@@ -1,6 +1,8 @@
-.idea
-analysis
-bin
+mapf
+Makefile
+CMakeFiles
+CMakeCache.txt
 cmake*
-exp*
-debug
+*.csv
+.DS_Store
+paths.txt

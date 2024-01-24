@@ -10,7 +10,8 @@ class HLNode // a virtual base class for high-level node
 public:
 	list<Constraint> constraints; // new constraints
 
-	int g_val = 0; // sum of costs for CBS, and sum of min f for ECBS
+	double g_val = 0; // sum of costs for CBS, and sum of min f for ECBS
+    double sum_of_costs = 0;
 	int h_val = 0; // admissible h
 	int cost_to_go = 0; // informed but inadmissible h
 	int distance_to_go = 0; // distance to the goal state

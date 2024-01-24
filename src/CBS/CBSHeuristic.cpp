@@ -212,7 +212,7 @@ void CBSHeuristic::computeQuickHeuristics(HLNode& node)
 	node->h_val = parent->h_val - maxWeight; // stronger pathmax
 	}*/
 	if (node.parent != nullptr)
-	    node.h_val = max(0, node.parent->g_val + node.parent->h_val - node.g_val); // pathmax
+	    node.h_val = max(0.0, node.parent->g_val + node.parent->h_val - node.g_val); // pathmax
 
     //vector<bool> HG(num_of_agents * num_of_agents, false);
     //buildConflictGraph(HG, node);

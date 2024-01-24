@@ -5,9 +5,10 @@
 void AnytimeBCBS::run()
 {
     int num_of_agents = instance.getDefaultNumberOfAgents();
-    bool improvements = true;
-    double w = (double) MAX_COST / (instance.num_of_cols + instance.num_of_rows)
-            / 10 / num_of_agents; // a large enough w without integer overflow issue
+    bool improvements = false;
+    // double w = (double) MAX_COST / (instance.num_of_cols + instance.num_of_rows)
+            // / 10 / num_of_agents; // a large enough w without integer overflow issue
+    double w = 1.0;
     CBS bcbs(instance, false, screen);
     bcbs.setPrioritizeConflicts(improvements);
     bcbs.setDisjointSplitting(false);
@@ -31,14 +32,18 @@ void AnytimeBCBS::run()
 
     // run
     CBSNode* best_goal_node = nullptr;
+    sum_of_costs_lowerbound = 0;
+    // CHANGE SUM OF COSTS STUFF HERE TO BE MORE GENERAL AND WORK WITH ARB. COST METRIC
     while(runtime < time_limit && sum_of_costs > sum_of_costs_lowerbound)
     {
+    	std::cout << "right here: " << sum_of_costs << " " << sum_of_costs_lowerbound << "\n";
         bcbs.solve(time_limit - runtime, sum_of_costs_lowerbound, sum_of_costs);
         runtime += bcbs.runtime;
         assert(sum_of_costs_lowerbound <= bcbs.getLowerBound());
-        sum_of_costs_lowerbound = bcbs.getLowerBound();
+        // sum_of_costs_lowerbound = bcbs.getLowerBound();
         if (bcbs.solution_found)
         {
+        	bcbs.printAllSolutionCosts();
             assert(sum_of_costs > bcbs.solution_cost);
             sum_of_costs = bcbs.solution_cost;
             best_goal_node = bcbs.getGoalNode();
@@ -61,12 +66,12 @@ void AnytimeBCBS::run()
         for (int i = 0; i < num_of_agents; i++)
             solution[i] = *bcbs.paths[i];
     }
-    bcbs.clearSearchEngines();
     cout << getSolverName() << ": Iterations = " << iteration_stats.size() << ", "
          << "lower bound = " << sum_of_costs_lowerbound << ", "
          << "solution cost = " << sum_of_costs << ", "
          << "initial solution cost = " << iteration_stats.front().sum_of_costs << ", "
          << "runtime = " << runtime << endl;
+    bcbs.clearSearchEngines();
 }
 
 
@@ -169,4 +174,23 @@ void AnytimeBCBS::writeResultToFile(string file_name) const
           iteration_stats.size() << "," << iteration_stats.front().runtime << "," <<  auc << "," <<
           preprocessing_time << "," << getSolverName() << "," << instance.getInstanceName() << endl;
     stats.close();
+}
+
+void AnytimeBCBS::writePathsToFile(const string & file_name) const
+{
+    std::ofstream output;
+    output.open(file_name);
+    // header
+    // output << agents.size() << endl;
+
+    int N = instance.getDefaultNumberOfAgents();
+    for (int i = 0; i < N; i++)
+    {
+        output << "Agent " << i << ":";
+        for (const auto &state : solution[i])
+            output << "(" << instance.getRowCoordinate(state.location) << "," <<
+                            instance.getColCoordinate(state.location) << ")->";
+        output << endl;
+    }
+    output.close();
 }

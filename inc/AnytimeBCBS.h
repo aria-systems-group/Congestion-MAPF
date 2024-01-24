@@ -19,6 +19,8 @@ public:
     void validateSolution() const;
     void writeIterStatsToFile(string file_name) const;
     void writeResultToFile(string file_name) const;
+    void writePathsToFile(const string & file_name) const;
+    void printAllSolutionCosts() const;
     string getSolverName() const { return "AnytimeBCBS"; }
 
 private:

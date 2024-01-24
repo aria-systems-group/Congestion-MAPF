@@ -27,6 +27,26 @@ void CBS::updatePaths(CBSNode* curr)
 	}
 }
 
+void CBS::printAllSolutionCosts() 
+{
+	if (goal_node) {
+		std::cout << "Found Solution! Printing all solution cost metrics: \n";
+    	std::cout << "SOC: " << goal_node->sum_of_costs << "\n";
+    	std::cout << "Makespan: " << goal_node->makespan << "\n";
+    	// calc final congestion value
+    	double congestion = 1.0;
+    	for (int i = 0; i < num_of_agents; i++)
+    	{
+        	congestion *= ((double)(paths[i]->size()) / ((double)paths_found_initially[i].size()));
+    	}
+    	std::cout << "Congestion: " << congestion << "\n"; // round(congestion * 100) / 100
+	}
+	else {
+		std::cout << "No solution found!\n";
+	}
+    
+}
+
 
 // deep copy of all conflicts except ones that involve the particular agent
 // used for copying conflicts from the parent node to the child nodes
@@ -437,8 +457,11 @@ bool CBS::findPathForSingleAgent(CBSNode*  node, int ag, int lowerbound)
 		assert(!isSamePath(*paths[ag], new_path));
 		node->paths.emplace_back(ag, new_path);
 		node->g_val = node->g_val - (int)paths[ag]->size() + (int)new_path.size();
+        node->sum_of_costs = node->sum_of_costs - ((int)paths[ag]->size()) + ((int)new_path.size());
 		paths[ag] = &node->paths.back().second;
-		node->makespan = max(node->makespan, new_path.size() - 1);
+		node->makespan = max(node->makespan, new_path.size());
+        // update the cost based on what it should be
+        calcNodeCost(node, new_path, ag);
 		return true;
 	}
 	else
@@ -453,6 +476,7 @@ bool CBS::generateChild(CBSNode*  node, CBSNode* parent)
 	node->parent = parent;
 	node->HLNode::parent = parent;
 	node->g_val = parent->g_val;
+    node->sum_of_costs += parent->sum_of_costs;
 	node->makespan = parent->makespan;
 	node->depth = parent->depth + 1;
 	/*int agent, x, y, t;
@@ -1561,8 +1585,9 @@ bool CBS::generateRoot()
                 return false;
             }
 			paths[i] = &paths_found_initially[i];
-			root->makespan = max(root->makespan, paths_found_initially[i].size() - 1);
-			root->g_val += (int)paths_found_initially[i].size() - 1;
+			root->makespan = max(root->makespan, paths_found_initially[i].size());
+			root->g_val += (int)paths_found_initially[i].size(); 
+            root->sum_of_costs += (int)paths_found_initially[i].size();
 		}
 	}
 	else
@@ -1570,10 +1595,14 @@ bool CBS::generateRoot()
 		for (int i = 0; i < num_of_agents; i++)
 		{
 			paths[i] = &paths_found_initially[i];
-			root->makespan = max(root->makespan, paths_found_initially[i].size() - 1);
-			root->g_val += (int) paths_found_initially[i].size() - 1;
+			root->makespan = max(root->makespan, paths_found_initially[i].size());
+			root->g_val += (int) paths_found_initially[i].size();
+            root->sum_of_costs += (int)paths_found_initially[i].size();
 		}
 	}
+
+    // custom for me: updates g_val to use the specified cost_metric
+    calcNodeCost(root);
 
 	root->h_val = 0;
 	root->depth = 0;
@@ -1677,11 +1706,11 @@ bool CBS::validateSolution() const
 			}
 		}
 	}
-	if ((int)soc != solution_cost)
-	{
-		cout << "The solution cost is wrong!" << endl;
-		return false;
-	}
+	// if ((int)soc != solution_cost)
+	// {
+	// 	cout << "The solution cost is wrong!" << endl;
+	// 	return false;
+	// }
 	return true;
 }
 

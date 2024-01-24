@@ -107,6 +107,8 @@ int main(int argc, char** argv)
             bcbs.writeResultToFile(vm["output"].as<string>() + ".csv");
         if (vm.count("stats"))
             bcbs.writeIterStatsToFile(vm["stats"].as<string>());
+        if (vm.count("outputPaths"))
+                bcbs.writePathsToFile(vm["outputPaths"].as<string>());
     }
     else if (vm["solver"].as<string>() == "A-EECBS") // anytime EECBS
     {

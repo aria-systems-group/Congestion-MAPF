@@ -93,6 +93,8 @@ public:
 
 	void clear(); // used for rapid random  restart
 
+    void printAllSolutionCosts();
+
 	int getInitialPathLength(int agent) const {return (int) paths_found_initially[agent].size() - 1; }
 protected:
     bool rectangle_reasoning;  // using rectangle reasoning
@@ -131,7 +133,7 @@ protected:
 
 	int num_of_agents;
 
-
+    
 
 	vector<Path> paths_found_initially;  // contain initial paths found
 	// vector<MDD*> mdds_initially;  // contain initial paths found
@@ -161,9 +163,84 @@ protected:
 	bool terminate(HLNode* curr); // check the stop condition and return true if it meets
 	void computeConflictPriority(shared_ptr<Conflict>& con, CBSNode& node); // check the conflict is cardinal, semi-cardinal or non-cardinal
 
+	string cost_metric = "Congestion";
+
+    // this is ran during the generateChild Proceedure
+    void calcNodeCost(CBSNode* node, Path new_path, int ag)
+    {
+        if (cost_metric == "SOC")
+        {
+            node->g_val = node->g_val - ((int)paths[ag]->size()) + ((int)new_path.size());
+        }
+        else if (cost_metric == "Makespan")
+        {
+            node->g_val = max(node->makespan, new_path.size());
+        }
+        else if (cost_metric == "Congestion")
+        {
+            // \Pi_{a \in A} (P[a] / SP[a])
+            node->g_val = 1.0; //double
+            for (int i = 0; i < num_of_agents; i++)
+            {
+                node->g_val *= ((double)(paths[i]->size()) / ((double)paths_found_initially[i].size()));
+            }
+        }
+        else if (cost_metric == "Geometric Mean")
+        {
+            node->g_val = 1;
+            for (int i = 0; i < num_of_agents; i++)
+            {
+                node->g_val *= (paths[i]->size());
+            }
+            node->g_val = pow(node->g_val, (1 / num_of_agents));
+        }
+        else
+        {
+            std::cout << "ERROR!" << std::endl;
+            exit(1);
+        }
+    }
+
+    // this is only run for the root node
+    void calcNodeCost(CBSNode* node)
+    {
+        if (cost_metric == "SOC")
+        {
+            node->g_val = 0;
+            for (int i = 0; i < num_of_agents; i++)
+            {
+                node->g_val += (int) paths_found_initially[i].size();
+            }
+        }
+        else if (cost_metric == "Makespan")
+        {
+            node->g_val = node->makespan;
+        }
+        else if (cost_metric == "Congestion")
+        {
+            // \Pi_{a \in A} (P[a] / SP[a])
+            // since we only have SP[a] for the root node, then g_al = 1
+            node->g_val = 1;
+        }
+        else if (cost_metric == "Geometric Mean")
+        {
+            node->g_val = 1;
+            for (int i = 0; i < num_of_agents; i++)
+            {
+                node->g_val *= (paths_found_initially[i].size());
+            }
+            node->g_val = pow(node->g_val, (1 / num_of_agents));
+        }
+        else
+        {
+            std::cout << "ERROR!" << std::endl;
+            exit(1);
+        }
+    }
 
 private: // CBS only, cannot be used by ECBS
     CBSNode* goal_node = nullptr;
+    CBSNode* last_goal_node = nullptr;
 
 	pairing_heap< CBSNode*, compare<CBSNode::compare_node_by_f> > cleanup_list; // it is called open list in ECBS
 	pairing_heap< CBSNode*, compare<CBSNode::compare_node_by_inadmissible_f> > open_list; // this is used for EES
